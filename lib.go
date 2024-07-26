@@ -10,6 +10,9 @@ import (
 	"github.com/tetratelabs/wazero/imports/wasi_snapshot_preview1"
 )
 
+//go:embed quickjs.wasm
+var quickjsWasm []byte
+
 //go:embed foo.wasm
 var fooWasm []byte
 
@@ -24,7 +27,12 @@ func RunFoo() (string, error) {
 		return "", err
 	}
 
-	compiled, err := r.CompileModule(ctx, fooWasm)
+	compiledQuickJS, err := r.CompileModule(ctx, quickjsWasm)
+	if err != nil {
+		return "", err
+	}
+
+	compiledFoo, err := r.CompileModule(ctx, fooWasm)
 	if err != nil {
 		return "", err
 	}
@@ -32,9 +40,12 @@ func RunFoo() (string, error) {
 	buff := &bytes.Buffer{}
 	buff.WriteString(`{ "n": 2, "bar": "baz" }`)
 
-	config := wazero.NewModuleConfig().WithStdout(buff).WithStderr(os.Stderr).WithStdin(buff)
+	_, err = r.InstantiateModule(ctx, compiledQuickJS, wazero.NewModuleConfig().WithStdout(buff).WithStderr(os.Stderr).WithStdin(buff).WithName("javy_quickjs_provider_v2"))
+	if err != nil {
+		return "", err
+	}
 
-	_, err = r.InstantiateModule(ctx, compiled, config)
+	_, err = r.InstantiateModule(ctx, compiledFoo, wazero.NewModuleConfig().WithName("foo"))
 	if err != nil {
 		return "", err
 	}
