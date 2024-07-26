@@ -1,0 +1,1 @@
+ javy compile foo.js -o foo.wasm
