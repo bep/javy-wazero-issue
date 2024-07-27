@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"context"
 	_ "embed"
-	"os"
+	"fmt"
 
 	"github.com/tetratelabs/wazero"
 	"github.com/tetratelabs/wazero/imports/wasi_snapshot_preview1"
@@ -37,18 +37,37 @@ func RunFoo() (string, error) {
 		return "", err
 	}
 
-	buff := &bytes.Buffer{}
-	buff.WriteString(`{ "n": 2, "bar": "baz" }`)
+	stderr1 := &bytes.Buffer{}
+	stderr2 := &bytes.Buffer{}
 
-	_, err = r.InstantiateModule(ctx, compiledQuickJS, wazero.NewModuleConfig().WithStdout(buff).WithStderr(os.Stderr).WithStdin(buff).WithName("javy_quickjs_provider_v2"))
+	stdinout1 := &bytes.Buffer{}
+	stdinout2 := &bytes.Buffer{}
+
+	stdinout1.WriteString(`{ "n": 2, "bar": "baz" }`)
+	stdinout2.WriteString(`{ "n": 3, "bar": "foo" }`)
+
+	_, err = r.InstantiateModule(ctx, compiledQuickJS, wazero.NewModuleConfig().
+		WithStdout(stdinout1).
+		WithStderr(stderr1).
+		WithStdin(stdinout1).
+		WithName("javy_quickjs_provider_v2"))
 	if err != nil {
 		return "", err
 	}
 
-	_, err = r.InstantiateModule(ctx, compiledFoo, wazero.NewModuleConfig().WithName("foo"))
+	_, err = r.InstantiateModule(ctx, compiledFoo, wazero.NewModuleConfig().
+		WithStdout(stdinout2).
+		WithStderr(stderr2).
+		WithStdin(stdinout2).
+		WithName("foo"))
 	if err != nil {
 		return "", err
 	}
 
-	return buff.String(), nil
+	fmt.Println("stderr1:", stderr1.String())     // This prints nothing
+	fmt.Println("stderr2:", stderr2.String())     // console.log from foo.js
+	fmt.Println("stdinout1:", stdinout1.String()) // { "n": 2, "bar": "baz" }
+	fmt.Println("stdinout2:", stdinout2.String()) // "foo":4,"newBar":"foo!"}
+
+	return stdinout1.String(), nil
 }

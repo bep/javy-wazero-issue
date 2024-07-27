@@ -1,10 +1,14 @@
+console.log('console.log from foo.js');
+
 // From https://github.com/bytecodealliance/javy?tab=readme-ov-file#compiling-to-webassembly
 // Read input from stdin
 const input = readInput();
 // Call the function with the input
 const result = foo(input);
 // Write the result to stdout
-writeOutput(result);
+writeOutput(1, result);
+// Also write the result to stderr
+writeOutput(2, result);
 
 // The main function.
 function foo(input) {
@@ -45,10 +49,8 @@ function readInput() {
 }
 
 // Write output to stdout
-function writeOutput(output) {
+function writeOutput(fd, output) {
 	const encodedOutput = new TextEncoder().encode(JSON.stringify(output));
 	const buffer = new Uint8Array(encodedOutput);
-	// Stdout file descriptor
-	const fd = 1;
 	Javy.IO.writeSync(fd, buffer);
 }

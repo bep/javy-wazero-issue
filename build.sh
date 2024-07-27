@@ -1,1 +1,1 @@
- javy compile foo.js -o foo.wasm
+ javy compile foo.js -d -o foo.wasm
